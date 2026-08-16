@@ -524,13 +524,13 @@ class Enemy:
 
 class Ghoul:
 
-    DETECTION_RANGE = 500
-    SPEED = 3
+    DETECTION_RANGE = 1000
+    SPEED = 5
 
     def __init__(self, x, y, image):
 
-        w = TILE_SIZE - 10
-        h = TILE_SIZE - 6
+        w = TILE_SIZE +100
+        h = TILE_SIZE +100
 
         self.rect = pygame.Rect(
             x,
@@ -583,7 +583,7 @@ class Tonic:
 
         self.image = pygame.transform.scale(
             image,
-            (TILE_SIZE, TILE_SIZE)
+            (int(1.5 * TILE_SIZE), int(1.5 * TILE_SIZE))
         )
 
         self.collected = False
@@ -600,42 +600,34 @@ class Tonic:
         if not self.collected and self.near_player(player):
 
             self.collected = True
+
+            # Immediately attach to player
+            self.rect.centerx = player.rect.centerx - 25
+            self.rect.centery = player.rect.centery + 30
+
             return True
 
         return False
 
-    def draw(self, surface, camera):
-
-        if not self.collected:
-
-            surface.blit(
-                self.image,
-                camera.apply(self.rect)
-            )
-
     def update(self, player):
 
-        dx = player.rect.centerx - self.rect.centerx
-        dy = player.rect.centery - self.rect.centery
+        if self.collected:
 
-        distance = math.hypot(dx, dy)
-
-        # Only chase when player is within 500 pixels
-        if distance <= self.DETECTION_RANGE and distance > 0:
-
-            self.rect.x += int(
-                (dx / distance) * self.SPEED
-            )
-
-            self.rect.y += int(
-                (dy / distance) * self.SPEED
-            )
+            # Follow player exactly
+            self.rect.centerx = player.rect.centerx - 20
+            self.rect.centery = player.rect.centery + 30
 
     def draw(self, surface, camera):
+
+        # Draw both before and after pickup.
+        # After pickup, rect follows the player.
+        image_rect = self.image.get_rect(
+            center=self.rect.center
+        )
 
         surface.blit(
             self.image,
-            camera.apply(self.rect)
+            camera.apply(image_rect)
         )
 def draw_background(surface, camera):
 
@@ -827,6 +819,9 @@ def main():
 
         for ghoul in ghouls:
             ghoul.update(player)
+        for tonic in tonics:
+            tonic.update(player)
+
 
         camera.update(player.rect)
         # ── Render to canvas ─────────────────────────────────────────────────
@@ -856,10 +851,11 @@ def main():
         for ghoul in ghouls:
             ghoul.draw(canvas, camera)
 
-        for tonic in tonics:
-            tonic.draw(canvas, camera)
+        
 
         player.draw(canvas, camera)
+        for tonic in tonics:
+            tonic.draw(canvas, camera)
         
         # ---------- Tonic Pickup Instruction ----------
 
